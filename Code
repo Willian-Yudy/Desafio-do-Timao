@@ -1,110 +1,123 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <memory>
+#include <stdexcept>
 
 using namespace std;
 
+// ===== Classe Base =====
+class BaseQuestion {
+public:
+    virtual void ask() const = 0;
+    virtual bool checkAnswer(const string &answer) const = 0;
+    virtual ~BaseQuestion() {}
+};
+
+// ===== Classe de Múltipla Escolha =====
+struct Option {
+    char letter;
+    string text;
+    bool correct;
+};
+
+class MultipleChoiceQuestion : public BaseQuestion {
+private:
+    string question;
+    vector<Option> options;
+    string hint;
+public:
+    MultipleChoiceQuestion(string q, vector<Option> opts, string h)
+        : question(q), options(opts), hint(h) {}
+
+    void ask() const override {
+        cout << "\n" << question << "\n";
+        for (const auto &opt : options) {
+            cout << opt.letter << ") " << opt.text << "\n";
+        }
+        cout << "Hint: " << hint << "\n";
+    }
+
+    bool checkAnswer(const string &answer) const override {
+        for (const auto &opt : options) {
+            if (toupper(answer[0]) == opt.letter) {
+                return opt.correct;
+            }
+        }
+        return false;
+    }
+};
+
+// ===== Classe de Verdadeiro ou Falso =====
+class TrueFalseQuestion : public BaseQuestion {
+private:
+    string question;
+    bool correct;
+public:
+    TrueFalseQuestion(string q, bool c) : question(q), correct(c) {}
+
+    void ask() const override {
+        cout << "\n" << question << " (T/F)?\n";
+    }
+
+    bool checkAnswer(const string &answer) const override {
+        if (toupper(answer[0]) == 'T') return correct;
+        if (toupper(answer[0]) == 'F') return !correct;
+        return false;
+    }
+};
+
+// ===== Função para criar perguntas =====
+vector<unique_ptr<BaseQuestion>> buildQuestions() {
+    vector<unique_ptr<BaseQuestion>> qs;
+
+    qs.push_back(make_unique<MultipleChoiceQuestion>(
+        "Em que ano o Corinthians foi fundado?",
+        vector<Option>{{'A',"1908",false},{'B',"1910",true},{'C',"1912",false},{'D',"1914",false}},
+        "Início da década de 1910"
+    ));
+
+    qs.push_back(make_unique<MultipleChoiceQuestion>(
+        "Quem foi o adversário na final do Mundial de 2012?",
+        vector<Option>{{'A',"Chelsea",true},{'B',"Barcelona",false},{'C',"Bayern",false},{'D',"Real Madrid",false}},
+        "Time inglês"
+    ));
+
+    qs.push_back(make_unique<TrueFalseQuestion>(
+        "O Corinthians ganhou a Libertadores em 2012", true
+    ));
+
+    return qs;
+}
+
+// ===== Função principal =====
 int main() {
+    cout << "=== Desafio Timão ===\n";
+
+    auto questions = buildQuestions();
     int score = 0;
-    int errors = 0;
-    string answer;
 
-    cout << "==============================" << endl;
-    cout << "       DESAFIO DO TIMÃO 🦅       " << endl;
-    cout << "==============================" << endl;
-    cout << "Answer 5 questions correctly to win the title 'Gavião'." << endl;
-    cout << "Get 3 wrong, and you'll be labeled... a 'Palmeirense' 🐖!" << endl;
-    cout << "Type A, B or C to answer. Good luck!" << endl << endl;
+    for (const auto &q : questions) {
+        q->ask();
+        string answer;
+        cout << "Resposta: ";
+        cin >> answer;
 
-    //  1
-    cout << "1. Which year was Corinthians founded?" << endl;
-    cout << "A) 1910" << endl;
-    cout << "B) 1920" << endl;
-    cout << "C) 1905" << endl;
-    cout << "Your answer: ";
-    cin >> answer;
-
-    if (answer == "A" || answer == "a") {
-        cout << "Correct! 🦅" << endl;
-        score++;
-    } else {
-        cout << "Wrong 🐽! The correct answer was A." << endl;
-        errors++;
+        if (q->checkAnswer(answer)) {
+            cout << "✅ Correto!\n";
+            score++;
+        } else {
+            cout << "❌ Errado!\n";
+        }
     }
 
-    //  2
-    cout << "\n2. How many world titles does Palmeiras have?" << endl;
-    cout << "A) 2" << endl;
-    cout << "B) 1" << endl;
-    cout << "C) 0 (51 é PINGA!)" << endl;
-    cout << "Your answer: ";
-    cin >> answer;
+    cout << "\nPontuação final: " << score << "/" << questions.size() << "\n";
 
-    if (answer == "C" || answer == "c") {
-        cout << "Correct! 🦅" << endl;
-        score++;
-    } else {
-        cout << "Wrong 🐽! The correct answer was C." << endl;
-        errors++;
-    }
-
-    // 3
-    cout << "\n3. Which stadium is home to one of the biggest clubs in Brazil?" << endl;
-    cout << "A) Morumbi" << endl;
-    cout << "B) Allianz Parque" << endl;
-    cout << "C) Neo Química Arena - Home of the Giant and the best in the world 🏟️" << endl;
-    cout << "Your answer: ";
-    cin >> answer;
-
-    if (answer == "C" || answer == "c") {
-        cout << "Correct! Welcome to the Hospicio 🤪!" << endl;
-        score++;
-    } else {
-        cout << "Wrong 🐽! The correct answer was C." << endl;
-        errors++;
-    }
-
-    // 4
-    cout << "\n4. Who is the all-time top scorer for Corinthians?" << endl;
-    cout << "A) Sócrates" << endl;
-    cout << "B) Marcelinho Carioca" << endl;
-    cout << "C) Casagrande" << endl;
-    cout << "Your answer: ";
-    cin >> answer;
-
-    if (answer == "B" || answer == "b") {
-        cout << "Correct! King Marcelinho! 👑" << endl;
-        score++;
-    } else {
-        cout << "Wrong 🐽! The correct answer was B." << endl;
-        errors++;
-    }
-
-    // 5
-    cout << "\n5. How many times has Corinthians won FIFA World Cup ⚽?" << endl;
-    cout << "A) 4" << endl;
-    cout << "B) 2" << endl;
-    cout << "C) 3" << endl;
-    cout << "Your answer: ";
-    cin >> answer;
-
-    if (answer == "B" || answer == "b") {
-        cout << "Correct! 🏆🦅" << endl;
-        score++;
-    } else {
-        cout << "Soon ! The correct answer was B." << endl;
-        errors++;
-    }
-
-    // Final result
-    cout << "\n==============================" << endl;
     if (score >= 5) {
-        cout << "🏆 Congratulations! You are a true GAVIÃO FIEL! 🦅" << endl;
-    } else if (errors >= 3) {
-        cout << "🐖 Oh no... You've become a PALMEIRENSE SEM MUNDIAL." << endl;
-    } else {
-        cout << "You finished the game! Final score: " << score << " stars." << endl;
+        cout << "Parabéns! Você é um Gavião! 🦅\n";
+    } else if (score <= 2) {
+        cout << "Infelizmente... você é palmeirense! 💚\n";
     }
-    cout << "==============================" << endl;
 
     return 0;
 }
