@@ -1,123 +1,204 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <memory>
-#include <stdexcept>
+/* ----- Project: DESAFIO TIMÃO -----
+PRG1006 Programming II - Assessment 3 13/08/2025
+Autor: Willian Yudy Futema
+Student number: 15160
+ */
 
-using namespace std;
+#include <iostream> 
+#include <string>  
+#include <vector>   
+#include <memory>   
+#include <cctype> 
 
-// ===== Classe Base =====
+//herança, polimorfismo, abstração (com classes base abstratas) e encapsulamento crucial para esse assessment
+using namespace std; 
+
+struct Opcao {
+    char letra;
+    string texto;
+    bool correta;
+};
+// Herança e Polimorfismo 
 class BaseQuestion {
+protected:
+    string enunciado;
+    string dica;
 public:
-    virtual void ask() const = 0;
-    virtual bool checkAnswer(const string &answer) const = 0;
-    virtual ~BaseQuestion() {}
+    BaseQuestion(string e, string d = "") : enunciado(e), dica(d) {}
+    virtual ~BaseQuestion() = default;
+    virtual void mostrar(bool mostrarDica = false) const = 0;
+    virtual bool verificarResposta(char resp) const = 0;
+    
+    bool temDica() const { return !dica.empty(); }
 };
-
-// ===== Classe de Múltipla Escolha =====
-struct Option {
-    char letter;
-    string text;
-    bool correct;
-};
-
+// Herança
 class MultipleChoiceQuestion : public BaseQuestion {
 private:
-    string question;
-    vector<Option> options;
-    string hint;
+    vector<Opcao> alternativas; 
 public:
-    MultipleChoiceQuestion(string q, vector<Option> opts, string h)
-        : question(q), options(opts), hint(h) {}
-
-    void ask() const override {
-        cout << "\n" << question << "\n";
-        for (const auto &opt : options) {
-            cout << opt.letter << ") " << opt.text << "\n";
+    MultipleChoiceQuestion(string e, vector<Opcao> alt, string d = "")
+        : BaseQuestion(e, d), alternativas(move(alt)) {}
+    void mostrar(bool mostrarDica = false) const override {
+        cout << "\n" << enunciado << "\n";
+        for (const auto& a : alternativas) {
+            cout << "[" << a.letra << "] " << a.texto << "\n";
         }
-        cout << "Hint: " << hint << "\n";
+        if (mostrarDica && temDica()) {
+            cout << "(💡 Dica: " << dica << ")\n";
+        }
     }
 
-    bool checkAnswer(const string &answer) const override {
-        for (const auto &opt : options) {
-            if (toupper(answer[0]) == opt.letter) {
-                return opt.correct;
+    // Polimorfismo
+    bool verificarResposta(char resp) const override {
+        resp = toupper(resp);
+        for (const auto& a : alternativas) {
+            if (a.letra == resp) return a.correta;
+        }
+        return false;
+    }
+
+    char pegarResposta(bool permitirDica) const {
+        string entrada;
+        while (true) {
+            cout << "Sua resposta";
+            if (permitirDica && !dica.empty()) cout << " (ou H para dica)";
+            cout << ": ";
+            cin >> entrada;
+            if (entrada.empty()) continue;
+            char r = toupper(entrada[0]);
+            if (permitirDica && r == 'H' && !dica.empty()) return 'H';
+            
+            bool valida = false;
+            for (const auto& a : alternativas) {
+                if (a.letra == r) {
+                    valida = true;
+                    break;
+                }
             }
+            if(valida) return r;
+
+            cout << "Opção inválida! Tente novamente.\n";
         }
-        return false;
     }
 };
 
-// ===== Classe de Verdadeiro ou Falso =====
-class TrueFalseQuestion : public BaseQuestion {
+// Encapsulamento e Ocultamento de Informação 
+class Player {
 private:
-    string question;
-    bool correct;
+    string nome;
+    int estrelas = 0;
+    int erros = 0;
 public:
-    TrueFalseQuestion(string q, bool c) : question(q), correct(c) {}
+    // Construtor
+    Player(string n = "Player") : nome(move(n)) {}
+    
+    // Métodos Get e Set
+    void addEstrela() { estrelas++; }
+    void addErro() { erros++; }
+    void reset() { estrelas = 0; erros = 0; }
+    int getEstrelas() const { return estrelas; }
+    int getErros() const { return erros; }
+    string getNome() const { return nome; }
 
-    void ask() const override {
-        cout << "\n" << question << " (T/F)?\n";
+    string tituloFinal() const {
+        if (estrelas >= 5) return "🏆 Você é um verdadeiro Gavião Fiel! 🦅";
+        if (erros >= 3) return "🐖 Virou Palmeirense sem Mundial...";
+        return "Terminou o jogo com " + to_string(estrelas) + " estrelas.";
+    }
+};
+class QuizGame {
+private:
+    Player jogador;
+    // Polimorfismo e Estrutura de Dados
+    // Usamos um vetor de 'unique_ptr'. Isso permite armazenar diferentes tipos de perguntas
+    // (qualquer classe que herde de 'BaseQuestion') e gerenciar a memória de forma segura.
+    vector<unique_ptr<BaseQuestion>> perguntas;
+
+public:
+    QuizGame(string nome) : jogador(nome) {}
+    void adicionarPergunta(unique_ptr<BaseQuestion> q) {
+        perguntas.push_back(move(q));
     }
 
-    bool checkAnswer(const string &answer) const override {
-        if (toupper(answer[0]) == 'T') return correct;
-        if (toupper(answer[0]) == 'F') return !correct;
-        return false;
+    void iniciar() {
+        jogador.reset();
+        cout << "\n==============================\n";
+        cout << "    DESAFIO DO TIMÃO 🦅\n";
+        cout << "==============================\n";
+        cout << "Acertar 5 = Gavião | Errar 3 = Palmeirense 🐖\n";
+
+        for (auto &p : perguntas) {
+            p->mostrar(false);
+            // O uso de `p->pegarResposta` aqui é um exemplo de polimorfismo.
+            char resp = static_cast<MultipleChoiceQuestion*>(p.get())->pegarResposta(p->temDica());
+            
+            if (resp == 'H') {
+                p->mostrar(true);
+                resp = static_cast<MultipleChoiceQuestion*>(p.get())->pegarResposta(false);
+            }
+
+            if (p->verificarResposta(resp)) {
+                cout << "✅ Correto!\n";
+                jogador.addEstrela();
+            } else {
+                cout << "❌ Errado!\n";
+                jogador.addErro();
+            }
+
+            if (jogador.getEstrelas() >= 5 || jogador.getErros() >= 3) break;
+        }
+
+        cout << "\n===== RESULTADO FINAL =====\n";
+        cout << jogador.tituloFinal() << "\n";
     }
 };
 
-// ===== Função para criar perguntas =====
-vector<unique_ptr<BaseQuestion>> buildQuestions() {
-    vector<unique_ptr<BaseQuestion>> qs;
-
-    qs.push_back(make_unique<MultipleChoiceQuestion>(
-        "Em que ano o Corinthians foi fundado?",
-        vector<Option>{{'A',"1908",false},{'B',"1910",true},{'C',"1912",false},{'D',"1914",false}},
-        "Início da década de 1910"
-    ));
-
-    qs.push_back(make_unique<MultipleChoiceQuestion>(
-        "Quem foi o adversário na final do Mundial de 2012?",
-        vector<Option>{{'A',"Chelsea",true},{'B',"Barcelona",false},{'C',"Bayern",false},{'D',"Real Madrid",false}},
-        "Time inglês"
-    ));
-
-    qs.push_back(make_unique<TrueFalseQuestion>(
-        "O Corinthians ganhou a Libertadores em 2012", true
-    ));
-
-    return qs;
-}
-
-// ===== Função principal =====
+// --- Função principal (main) ---
+// Ponto de entrada do programa, onde o jogo é configurado e executado.
 int main() {
-    cout << "=== Desafio Timão ===\n";
+    string nome;
+    cout << "Digite seu nome: ";
+    getline(cin, nome);
+    if (nome.empty()) nome = "Player";
 
-    auto questions = buildQuestions();
-    int score = 0;
+    QuizGame jogo(nome);
 
-    for (const auto &q : questions) {
-        q->ask();
-        string answer;
-        cout << "Resposta: ";
-        cin >> answer;
+    // Adicionando as perguntas.
+    // Usamos 'make_unique' para criar e gerenciar a vida útil dos objetos de pergunta.
+    jogo.adicionarPergunta(make_unique<MultipleChoiceQuestion>(
+        "1. Which year was Corinthians founded?",
+        vector<Opcao>{{'A',"1910",true},{'B',"1920",false},{'C',"1905",false}},
+        "Começo da década de 1910"
+    ));
+    jogo.adicionarPergunta(make_unique<MultipleChoiceQuestion>(
+        "2. How many world titles does Palmeiras have?",
+        vector<Opcao>{{'A',"2",false},{'B',"1",false},{'C',"0 (51 é pinga!)",true}},
+        "51 is Cachaça"
+    ));
+    jogo.adicionarPergunta(make_unique<MultipleChoiceQuestion>(
+        "3. Which stadium is home to one of the biggest clubs in Brazil?",
+        vector<Opcao>{{'A',"Morumbi",false},{'B',"Allianz Parque",false},
+                       {'C',"Neo Química Arena 🏟️",true}},
+        "É a casa do Timão "
+    ));
+    jogo.adicionarPergunta(make_unique<MultipleChoiceQuestion>(
+        "4. Who is the top scorer for Corinthians at moment?",
+        vector<Opcao>{{'A',"Memphis Depay",false},{'B',"Yuri Alberto",true},{'C',"Rodrigo Garro",false}},
+        "Pai do Inter"
+    ));
+    jogo.adicionarPergunta(make_unique<MultipleChoiceQuestion>(
+        "5. How many times has Corinthians won FIFA World Cup ⚽?",
+        vector<Opcao>{{'A',"4",false},{'B',"2",true},{'C',"3",false}},
+        "2000 e 2012"
+    ));
+    char jogarNovamente;
+    do {
+        jogo.iniciar();
+        cout << "\nDeseja jogar novamente? (S/N): ";
+        cin >> jogarNovamente;
+        jogarNovamente = toupper(jogarNovamente);
+    } while (jogarNovamente == 'S');
 
-        if (q->checkAnswer(answer)) {
-            cout << "✅ Correto!\n";
-            score++;
-        } else {
-            cout << "❌ Errado!\n";
-        }
-    }
-
-    cout << "\nPontuação final: " << score << "/" << questions.size() << "\n";
-
-    if (score >= 5) {
-        cout << "Parabéns! Você é um Gavião! 🦅\n";
-    } else if (score <= 2) {
-        cout << "Infelizmente... você é palmeirense! 💚\n";
-    }
-
+    cout << "\nObrigado por jogar o Desafio Timão!\n";
     return 0;
 }
