@@ -1,20 +1,16 @@
-# Desafio Timão 🦅
+# Desafio do Timão
 
-Um quiz em **C++** sobre a história do Sport Club Corinthians Paulista, desenvolvido para a disciplina **Programming II (PRG1006)**.
+## Visão Geral do Projeto
+Este é um jogo de perguntas e respostas sobre o time de futebol Corinthians, desenvolvido em C++. O projeto foi criado como parte do módulo **PRG1006 Programming II** para demonstrar a aplicação de princípios de Programação Orientada a Objetos (POO), incluindo herança, polimorfismo, abstração e encapsulamento.
 
-## 🎯 Objetivo
-O jogador deve responder perguntas de múltipla escolha e verdadeiro/falso.  
-Com 5 acertos, torna-se um **Gavião**.  
-Com 3 ou mais erros, é considerado **palmeirense**.
+## Estrutura do Projeto
+O código é organizado em múltiplos arquivos para modularidade e boas práticas de desenvolvimento:
+- `include/`: Contém os arquivos de cabeçalho (.h) com as declarações das classes.
+- `src/`: Contém os arquivos de implementação (.cpp) com a lógica de cada classe.
+- `Makefile`: Automatiza o processo de compilação do projeto.
 
-## 🛠️ Tecnologias
-- Linguagem: **C++**
-- Paradigma: **POO (Programação Orientada a Objetos)**
-- Uso de `unique_ptr`, polimorfismo e tratamento básico de erros.
+## Como Compilar e Executar
+Para compilar o programa, navegue até o diretório raiz do projeto e execute o seguinte comando no terminal:
 
-## 🚀 Como compilar
-
-**macOS**
-```bash
-g++ -std=c++17 -O2 -Wall -o desafio_timao src/main.cpp
-./desafio_timao
+```sh
+make
